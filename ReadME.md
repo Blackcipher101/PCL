@@ -8,4 +8,4 @@ Here is an example of using a Depth Map and Image to find its point cloud
 
 
 
-### *This repo s under development and contains all my learnings about PCL*
+### *This repo is under development and contains all my learnings about PCL*
