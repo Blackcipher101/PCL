@@ -36,6 +36,24 @@ cloud_filtred = passthrough.filter()
 Next in your perception pipeline, you need to remove the table itself from the scene. To do this you will use a popular technique known as Random Sample Consensus or "RANSAC". RANSAC is an algorithm, that you can use to identify points in your dataset that belong to a particular model. In the case of the 3D scene you're working with here, the model you choose could be a plane, a cylinder, a box, or any other common shape.
 
 The RANSAC algorithm assumes that all of the data in a dataset is composed of both inliers and outliers, where inliers can be defined by a particular model with a specific set of parameters, while outliers do not fit that model and hence can be discarded. Like in the example below, we can extract the outliners that are not good fits for the model.
+``` python
+seg = cloud_filtred.make_segmenter()
+seg.set_model_type(pcl.SACMODEL_PLANE)
+seg.set_method_type(pcl.SAC_RANSAC)
+max_dis=0.01
+seg.set_distance_threshold(max_dis)
+inliners,coffe=seg.segment()
+extracted_inliners=cloud_filtred.extract(inliners,negative=False)
+filename="inliner.pcd"
+pcl.save(extracted_inliners,filename)
+try:
+    extracted_outliners=cloud_filtred.extract(inliners,negative=True)
+except RuntimeError:
+    print("maxdis wrong")
+else:
+    filename = 'extracted.pcd'
+    pcl.save(extracted_outliners,filename)
+```
 ![](images/Screenshot%20from%202021-10-12%2012-38-07.png)
 ### Noise Filter
 
@@ -48,4 +66,16 @@ One filtering technique used to remove such outliers is to perform statistical a
 
 By assuming a Gaussian distribution, all points whose average distance is outside the interval defined by the global distance mean + standard deviation are regarded as outliers and deleted from the point cloud.
 ![](images/Screenshot%20from%202021-10-12%2012-52-59.png)
+``` python
+ fil = p.make_statistical_outlier_filter()
+    fil.set_mean_k(50)
+    fil.set_std_dev_mul_thresh(1.0)
+
+    pcl.save(fil.filter(),
+             "table_scene_lms400_inliers.pcd")
+
+    fil.set_negative(True)
+    pcl.save(fil.filter(),
+             "table_scene_lms400_outliers.pcd")
+```
 ### *This repo is under development and contains all my learnings about PCL*
