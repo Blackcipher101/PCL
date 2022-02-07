@@ -26,9 +26,7 @@ if __name__ == '__main__':
     models = [
        'beer',
        'bowl',
-       'disk_part',
-       'hammer',
-       'plastic_cup']
+       'disk_part']
 
     # Disable gravity and delete the ground plane
     initial_setup()
@@ -41,7 +39,7 @@ if __name__ == '__main__':
             # make five attempts to get a valid a point cloud then give up
             sample_was_good = False
             try_count = 0
-            while not sample_was_good and try_count < 5:
+            while not sample_was_good and try_count < 20:
                 sample_cloud = capture_sample()
                 sample_cloud_arr = ros_to_pcl(sample_cloud).to_array()
 

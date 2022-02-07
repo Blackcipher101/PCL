@@ -78,4 +78,132 @@ By assuming a Gaussian distribution, all points whose average distance is outsid
     pcl.save(fil.filter(),
              "table_scene_lms400_outliers.pcd")
 ```
+
+## Segmtation and clustering
+
+### K-means clustering
+K-means clustering is implemented as follows:
+
+- Assume you have n data points p1, p2, p3, . . , pn and plan to divide them into k clusters.
+- Start by selecting k individual points c1,c2, . . .,ck  from the dataset as the initial cluster centroids.
+- Establish convergence and termination criteria (stability of solution and maximum number of iterations)
+- In the absence of convergence / termination criteria, do:
+    - for 
+    - i=1 to n:
+    - Calculate distance from pi to each cluster centroid
+    - Assign pi to its closest centroid and label it accordingly
+    - endfor
+    - For j = 1 to k:
+    - Recompute the centroid of cluster j based on the average of all data point that belog to the cluster
+    - endfor
+- end
+
+![](images/1.png)
+
+### DBSCAN Algorithm
+DBSCAN stands for Density-Based Spatial Clustering of Applications with Noise. This algorithm is a nice alternative to k-means when you don' t know how many clusters to expect in your data, but you do know something about how the points should be clustered in terms of density (distance between points in a cluster).
+Suppose you have a set PP of nn data points p1,p2,..., pn​:
+
+-   Set constraints for the minimum number of points that comprise a cluster (`min_samples`)
+-   Set distance threshold or maximum distance between cluster points (`max_dist`)
+-   For every point p_ipi​ in PP, do:
+    -   if pi​ has at least one neighbor within `max_dist`:
+        -   if pi​'s neighbor is part of a cluster:
+            -   add p_ipi​ to that cluster
+        -   if pi​ has at least `min_samples`-1 neighbors within `max_dist`:
+            -   pi​ becomes a "core member" of the cluster
+        -   else:
+            -   pi​ becomes an "edge member" of the cluster
+    -   else:
+        -   pi​ is defined as an outlier
+![](images/2.png)
+### ROS PCL
+This package provides interfaces and tools for bridging a running ROS system to the Point Cloud Library. These include ROS nodelets, nodes, and C++ interfaces.
+
+![](images/3.png)
+
+---
+
+![](images/4.png)
+
+in this we cluster using the above DBSANC algorithm
+
+```python
+    cloud = ros_to_pcl(pcl_msg)
+    vox = cloud.make_voxel_grid_filter()
+    # TODO: Voxel Grid Downsampling
+    LEAF_SIZE = 0.01   
+    vox.set_leaf_size(LEAF_SIZE, LEAF_SIZE, LEAF_SIZE)
+    cloud_filtered = vox.filter()
+    # TODO: PassThrough Filter
+    passthrough = cloud_filtered.make_passthrough_filter()
+
+    # TODO: RANSAC Plane Segmentation
+    filter_axis = 'z'
+    passthrough.set_filter_field_name(filter_axis)
+    axis_min = 0.76
+    axis_max = 1.1
+    passthrough.set_filter_limits(axis_min, axis_max)
+    # TODO: Extract inliers and outliers
+    cloud_filtered = passthrough.filter()
+    seg = cloud_filtered.make_segmenter()
+    seg.set_model_type(pcl.SACMODEL_PLANE)
+    seg.set_method_type(pcl.SAC_RANSAC)
+    max_distance = 0.01
+    seg.set_distance_threshold(max_distance)
+    inliers, coefficients = seg.segment()
+    extracted_inliers = cloud_filtered.extract(inliers, negative=False)
+    extracted_outliers = cloud_filtered.extract(inliers, negative=True)
+    ros_cloud_objects = pcl_to_ros(extracted_outliers)
+    ros_cloud_table   = pcl_to_ros(extracted_inliers)
+
+    # TODO: Euclidean Clustering
+    white_cloud = XYZRGB_to_XYZ(extracted_outliers)
+    tree = white_cloud.make_kdtree()
+
+    # Create a cluster extraction object
+    ################################
+    ec = white_cloud.make_EuclideanClusterExtraction()
+    # Set tolerances for distance threshold 
+    # as well as minimum and maximum cluster size (in points)
+    # NOTE: These are poor choices of clustering parameters
+    # Your task is to experiment and find values that work for segmenting objects.
+    ec.set_ClusterTolerance(0.03)
+    ec.set_MinClusterSize(10)
+    ec.set_MaxClusterSize(3000)
+    
+    # Search the k-d tree for clusters
+    ec.set_SearchMethod(tree)
+    
+    # Extract indices for each of the discovered clusters
+    cluster_indices = ec.Extract()
+
+    # Create Cluster-Mask Point Cloud to visualize each cluster separately
+    ################################
+    # Assign a color corresponding to each segmented object in scene
+    cluster_color = get_color_list(len(cluster_indices))
+
+    color_cluster_point_list = []
+
+    for j, indices in enumerate(cluster_indices):
+        for i, indice in enumerate(indices):
+            color_cluster_point_list.append([white_cloud[indice][0],
+                                             white_cloud[indice][1],
+                                             white_cloud[indice][2],
+                                             rgb_to_float(cluster_color[j])])
+
+    # Create new cloud containing all clusters, each with unique color
+    ################################
+    cluster_cloud = pcl.PointCloud_PointXYZRGB()
+    cluster_cloud.from_list(color_cluster_point_list)
+    ros_cluster_cloud = pcl_to_ros(cluster_cloud)
+```
+this creates the clusters
+
+### object recgonctition
+SVMs work by applying an iterative method to a training dataset, where each item in the training set is characterized by a feature vector and a label. In the image above, each point is characterized by just two features, A and B. The color of each point corresponds to its label, or which class of object it represents in the dataset.
+
+
+![](images/5.png)
+![](images/6.png)
 ### *This repo is under development and contains all my learnings about PCL*
