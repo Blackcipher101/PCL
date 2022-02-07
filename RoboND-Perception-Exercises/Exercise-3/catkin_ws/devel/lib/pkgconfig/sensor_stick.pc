@@ -1,0 +1,8 @@
+prefix=/home/nehalnevle/projects/PCL/RoboND-Perception-Exercises/Exercise-3/catkin_ws/devel
+
+Name: sensor_stick
+Description: Description of sensor_stick
+Version: 0.0.0
+Cflags: -I/home/nehalnevle/projects/PCL/RoboND-Perception-Exercises/Exercise-3/catkin_ws/devel/include
+Libs: -L${prefix}/lib 
+Requires: message_runtime

@@ -1,0 +1,2 @@
+sensor_stick
+-DCATKIN_DEVEL_PREFIX=/home/nehalnevle/projects/PCL/RoboND-Perception-Exercises/Exercise-2/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/nehalnevle/projects/PCL/RoboND-Perception-Exercises/Exercise-2/catkin_ws/install -G Unix Makefiles
